@@ -10,6 +10,8 @@
 import random
 from PIL import Image
 import numpy as np
+from scipy import ndimage
+import matplotlib.pyplot as plt
 
 
 
@@ -70,6 +72,38 @@ class Space:
         self.delta = np.abs(np.array(self.grid) - self.oldGrid)
         return np.max(self.delta)
 
+    def new_solve(self, resolution):
+        self.defineObjects()
+        steady = np.array(self.grid)
+        self.seed()
+        grid = np.array(self.grid)
+        #mask = np.array(self.objectMask)
+        positive_mask = np.array(self.objectMask)
+        negative_mask = np.abs(np.ones(positive_mask.shape) - positive_mask)
+        print(negative_mask)
+        seed = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+        seed = seed / np.sum(seed)
+        over = False
+        tally = 0
+        plt.imshow(grid)
+        plt.show()
+        plt.imshow(steady)
+        plt.show()
+        plt.show()
+        while not over:
+            new = ndimage.convolve(grid, seed)
+            new = new * negative_mask + steady
+            print(np.max(new))
+            delta = np.abs(grid - new)
+            diff = np.max(delta)
+            grid = new
+            if diff < resolution:
+                over = True
+            tally += 1
+            print(tally, diff)
+        self.grid = grid
+
+
 
     def solve(self, resolution):
         # Make object Map
@@ -100,7 +134,7 @@ class Space:
         return self.gradientMap(peak, self.grid[y][x])
 
     def photo(self, fname):
-        peak = max(max(self.grid))
+        peak = np.max(self.grid)
         im = Image.new("RGB", (len(self.grid[0]), len(self.grid)), "white")
         img = im.load()
         for y in range(len(self.grid)):
@@ -151,16 +185,17 @@ class Rectangle:
         return True
 
 
-a = Space(150, 150, 1)
-o1 = Rectangle(14, 24, 122, 1, 0)
-o2 = Rectangle(14, 24, 1, 101, 0)
-o3 = Rectangle(135, 24, 1, 101, 0)
-o4 = Rectangle(25, 125, 100, 1, 100)
+a = Space(1500, 1500, 1)
+o1 = Rectangle(140, 240, 1220, 10, 0)
+o2 = Rectangle(140, 240, 10, 1010, 0)
+o3 = Rectangle(1350, 240, 10, 1010, 0)
+o4 = Rectangle(250, 1250, 1000, 10, 100)
 a.addObject(o1)
 a.addObject(o2)
 a.addObject(o3)
 a.addObject(o4)
-a.solve(0.1)
-a.photo("demo")
+#a.solve(0.1)
+a.new_solve(0.1)
+a.photo("demo_new")
 
 
